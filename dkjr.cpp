@@ -87,65 +87,19 @@ typedef struct
 
 int main(int argc, char* argv[])
 {
-	int evt;
-
 	ouvrirFenetreGraphique();
-
-	afficherCage(2);
-	afficherCage(3);
-	afficherCage(4);
-
-	afficherRireDK();
-
-	afficherCroco(11, 2);
-	afficherCroco(17, 1);
-	afficherCroco(0, 3);
-	afficherCroco(12, 5);
-	afficherCroco(18, 4);
-
-	afficherDKJr(11, 9, 1);
-	afficherDKJr(6, 19, 7);
-	afficherDKJr(0, 0, 9);
-	
-	afficherCorbeau(10, 2);
-	afficherCorbeau(16, 1);
-	
-	effacerCarres(9, 10, 2, 1);
-
-	afficherEchec(1);
-	afficherScore(1999);
 
 	//Thread Evenement
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
 
 	//Thread DkJr
-	pthread(&threadDKJr, NULL, FctThreadDKJr, NULL);
+	pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 
 	//Thread cle
 	pthread_create(&threadCle, NULL, FctThreadCle, NULL);
 
+	pthread_exit(0);
 
-	while (1)
-	{
-	    evt = lireEvenement();
-
-	    switch (evt)
-	    {
-		case SDL_QUIT:
-			exit(0);
-		case SDLK_UP:
-			printf("KEY_UP\n");
-			break;
-		case SDLK_DOWN:
-			printf("KEY_DOWN\n");
-			break;
-		case SDLK_LEFT:
-			printf("KEY_LEFT\n");
-			break;
-		case SDLK_RIGHT:
-			printf("KEY_RIGHT\n");
-	    }
-	}
 }
 
 // -------------------------------------
@@ -188,7 +142,7 @@ void *FctThreadCle(void* arg)
 {
 	struct timespec temps = { 0, 700000000 };
 
-	int pos = 1, sens=1;
+	int pos = 1, sens;
 	while(1)
 	{	
 		if(pos==1)
@@ -204,12 +158,12 @@ void *FctThreadCle(void* arg)
 			
 		afficherCle(pos);
 		nanosleep(&temps, NULL);
-		effacerCarres(3, 12, 2, 3);	
+		if(pos<3)//2 carres à supprimer
+			effacerCarres(3, 12 + (pos-1), 2);	
+		else//4 carres à supprimer
+			effacerCarres(3, 13, 2, 2);
 
-		if(sens==1)
-			pos++;
-		else
-			pos--;
+		pos = pos + sens;
 	}
 }
 
@@ -253,5 +207,60 @@ void *FctThreadEvenements(void* arg)
 
 void * FctThreadDKJr(void* arg)
 {
+	bool on = true;
+
+	pthread_mutex_lock(&mutexGrilleJeu);
+
+	setGrilleJeu(3, 1, DKJR); 
+	afficherDKJr(11, 9, 1); 
+	etatDKJr = LIBRE_BAS; 
+	positionDKJr = 1;
 	
+	pthread_mutex_unlock(&mutexGrilleJeu);
+	while (on)
+	{
+		pause();
+		pthread_mutex_lock(&mutexEvenement);
+		pthread_mutex_lock(&mutexGrilleJeu);
+		switch (etatDKJr)
+		{
+			case LIBRE_BAS:
+				switch (evenement)
+				{
+
+					case SDLK_LEFT:
+						if (positionDKJr > 1)
+						{
+							setGrilleJeu(3, positionDKJr);
+							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+							positionDKJr--;
+							setGrilleJeu(3, positionDKJr, DKJR);
+							afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
+						}
+						break;
+					case SDLK_RIGHT:
+					
+					break;
+					case SDLK_UP:
+					
+					break;
+				}	
+			case LIANE_BAS:
+			
+			break;
+			case DOUBLE_LIANE_BAS:
+			
+			break;
+			case LIBRE_HAUT:
+			
+			break;
+			case LIANE_HAUT:
+
+			break;
+
+		}
+		pthread_mutex_unlock(&mutexGrilleJeu);
+		pthread_mutex_unlock(&mutexEvenement);
+	}
+	pthread_exit(0);
 }
