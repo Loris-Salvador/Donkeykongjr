@@ -87,7 +87,29 @@ typedef struct
 
 int main(int argc, char* argv[])
 {
+	sigset_t mask;
+    sigemptyset(&mask);
+
+	struct sigaction sigAct;
+
+    sigAct.sa_handler = HandlerSIGQUIT;
+    sigemptyset(&sigAct.sa_mask);
+    sigaction(SIGQUIT, &sigAct, NULL);
+
+	sigaddset(&mask, SIGQUIT);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+
+	fflush(stdout);
+
 	ouvrirFenetreGraphique();
+
+	//intialisation mutex
+
+	pthread_mutex_init(&mutexEvenement, NULL);  
+	pthread_mutex_init(&mutexGrilleJeu, NULL);  
+	pthread_mutex_init(&mutexDK, NULL);
+	pthread_mutex_init(&mutexScore, NULL);  
 
 	//Thread Evenement
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
@@ -142,26 +164,31 @@ void *FctThreadCle(void* arg)
 {
 	struct timespec temps = { 0, 700000000 };
 
-	int pos = 1, sens;
+	int pos = 1, sens = -1;
+
 	while(1)
 	{	
-		if(pos==1)
-		{
-			sens=1;
-			grilleJeu[0][1].type=CLE;
-		}
-		else if(pos==4)
-			sens=-1;
+		pthread_mutex_lock(&mutexGrilleJeu);
 
-		if(pos!=1)
+		if(pos==1)
+			grilleJeu[0][1].type=CLE;
+		else
 			grilleJeu[0][1].type=VIDE;
-			
+
 		afficherCle(pos);
+
+		pthread_mutex_unlock(&mutexGrilleJeu);
+			
 		nanosleep(&temps, NULL);
+
 		if(pos<3)//2 carres à supprimer
 			effacerCarres(3, 12 + (pos-1), 2);	
+
 		else//4 carres à supprimer
 			effacerCarres(3, 13, 2, 2);
+
+		if(pos==1 || pos ==4)
+			sens = sens * -1;
 
 		pos = pos + sens;
 	}
@@ -176,58 +203,50 @@ void *FctThreadEvenements(void* arg)
 	{
 		evt = lireEvenement();
 
-		pthread_mutex_lock(&mutexEvenement);
-
-	    switch(evt)
-	    {
-		case SDL_QUIT:
+		if(evt == SDL_QUIT)
 			exit(0);
-			break;
-		case SDLK_UP:
-			evenement=evt;
-			break;
-		case SDLK_DOWN:
-			evenement=evt;
-			break;
-		case SDLK_LEFT:
-			evenement=evt;
-			break;
-		case SDLK_RIGHT:
-			evenement=evt;
-			break;
-	    }
+
+		pthread_mutex_lock(&mutexEvenement);
+		evenement = evt;
+		pthread_mutex_unlock(&mutexEvenement);
 
 		pthread_kill(threadDKJr, SIGQUIT);
 		nanosleep(&temps, NULL);
-		evenement = AUCUN_EVENEMENT;
 
+		pthread_mutex_lock(&mutexEvenement);
+		evenement = AUCUN_EVENEMENT;
 		pthread_mutex_unlock(&mutexEvenement);
 	}
 }
 
 void * FctThreadDKJr(void* arg)
 {
+	sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGQUIT);
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
 	bool on = true;
 
 	pthread_mutex_lock(&mutexGrilleJeu);
-
 	setGrilleJeu(3, 1, DKJR); 
+	afficherGrilleJeu();
 	afficherDKJr(11, 9, 1); 
 	etatDKJr = LIBRE_BAS; 
-	positionDKJr = 1;
-	
+	positionDKJr = 1;	
 	pthread_mutex_unlock(&mutexGrilleJeu);
+
 	while (on)
 	{
 		pause();
 		pthread_mutex_lock(&mutexEvenement);
 		pthread_mutex_lock(&mutexGrilleJeu);
+
 		switch (etatDKJr)
 		{
 			case LIBRE_BAS:
 				switch (evenement)
 				{
-
 					case SDLK_LEFT:
 						if (positionDKJr > 1)
 						{
@@ -235,11 +254,17 @@ void * FctThreadDKJr(void* arg)
 							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
 							positionDKJr--;
 							setGrilleJeu(3, positionDKJr, DKJR);
+							afficherGrilleJeu();
 							afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 						}
 						break;
 					case SDLK_RIGHT:
-					
+						setGrilleJeu(3, positionDKJr);//eneleve dk
+						effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+						positionDKJr++;
+						setGrilleJeu(3, positionDKJr, DKJR);
+						afficherGrilleJeu();
+						afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 					break;
 					case SDLK_UP:
 					
@@ -263,4 +288,10 @@ void * FctThreadDKJr(void* arg)
 		pthread_mutex_unlock(&mutexEvenement);
 	}
 	pthread_exit(0);
+}
+
+
+void HandlerSIGQUIT(int sig)
+{
+	printf("Evenement\n");
 }
