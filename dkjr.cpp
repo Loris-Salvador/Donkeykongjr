@@ -94,13 +94,11 @@ int main(int argc, char* argv[])
 
     sigAct.sa_handler = HandlerSIGQUIT;
     sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
     sigaction(SIGQUIT, &sigAct, NULL);
 
 	sigaddset(&mask, SIGQUIT);
     sigprocmask(SIG_BLOCK, &mask, NULL);
-
-
-	fflush(stdout);
 
 	ouvrirFenetreGraphique();
 
@@ -109,16 +107,24 @@ int main(int argc, char* argv[])
 	pthread_mutex_init(&mutexEvenement, NULL);  
 	pthread_mutex_init(&mutexGrilleJeu, NULL);  
 	pthread_mutex_init(&mutexDK, NULL);
-	pthread_mutex_init(&mutexScore, NULL);  
-
-	//Thread Evenement
-	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
-
-	//Thread DkJr
-	pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
+	pthread_mutex_init(&mutexScore, NULL);  	
+		
 
 	//Thread cle
+
+	printf("Initialisation Thread Cle\n");
 	pthread_create(&threadCle, NULL, FctThreadCle, NULL);
+
+	//Thread DkJr
+	printf("Initialisation Thread DkJr\n");
+
+	pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
+
+	//Thread Evenement
+	printf("Initialisation Thread Evenement\n");
+
+	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
+
 
 	pthread_exit(0);
 
@@ -168,7 +174,9 @@ void *FctThreadCle(void* arg)
 
 	while(1)
 	{	
+		//printf("Avant Lock cle\n");
 		pthread_mutex_lock(&mutexGrilleJeu);
+		//printf("Lock cle\n");
 
 		if(pos==1)
 			grilleJeu[0][1].type=CLE;
@@ -178,6 +186,8 @@ void *FctThreadCle(void* arg)
 		afficherCle(pos);
 
 		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		//printf("APRES Lock cle\n");
 			
 		nanosleep(&temps, NULL);
 
@@ -201,21 +211,27 @@ void *FctThreadEvenements(void* arg)
 
 	while (1)
 	{
+		printf("Lecture evenement\n");
 		evt = lireEvenement();
 
 		if(evt == SDL_QUIT)
 			exit(0);
 
+		printf("Avant Lock Evenement\n");
 		pthread_mutex_lock(&mutexEvenement);
 		evenement = evt;
 		pthread_mutex_unlock(&mutexEvenement);
+		printf("Apres Lock Evenement\n");
 
+		printf("Envoie signal a dkjr\n");
 		pthread_kill(threadDKJr, SIGQUIT);
+		printf("wesh\n");
 		nanosleep(&temps, NULL);
-
+		printf("Avant Lock Evenement 2\n");
 		pthread_mutex_lock(&mutexEvenement);
 		evenement = AUCUN_EVENEMENT;
 		pthread_mutex_unlock(&mutexEvenement);
+		printf("APRES Lock Evenement 2\n");
 	}
 }
 
@@ -226,7 +242,11 @@ void * FctThreadDKJr(void* arg)
     sigaddset(&mask, SIGQUIT);
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
+	struct timespec temps = { 1, 400000000 };
+
 	bool on = true;
+
+	printf("Avant Lock DKJR\n");
 
 	pthread_mutex_lock(&mutexGrilleJeu);
 	setGrilleJeu(3, 1, DKJR); 
@@ -235,10 +255,13 @@ void * FctThreadDKJr(void* arg)
 	etatDKJr = LIBRE_BAS; 
 	positionDKJr = 1;	
 	pthread_mutex_unlock(&mutexGrilleJeu);
+	printf("Apres Lock Evenement\n");
 
 	while (on)
 	{
+		printf("Attente...\n");
 		pause();
+		printf("Sortie de pause()\n");
 		pthread_mutex_lock(&mutexEvenement);
 		pthread_mutex_lock(&mutexGrilleJeu);
 
@@ -250,27 +273,49 @@ void * FctThreadDKJr(void* arg)
 					case SDLK_LEFT:
 						if (positionDKJr > 1)
 						{
-							setGrilleJeu(3, positionDKJr);
+							setGrilleJeu(3, positionDKJr, 0);
 							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+
 							positionDKJr--;
+
 							setGrilleJeu(3, positionDKJr, DKJR);
 							afficherGrilleJeu();
+
 							afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 						}
 						break;
 					case SDLK_RIGHT:
-						setGrilleJeu(3, positionDKJr);//eneleve dk
+						setGrilleJeu(3, positionDKJr, 0);//enleve dk
 						effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+
 						positionDKJr++;
+
 						setGrilleJeu(3, positionDKJr, DKJR);
 						afficherGrilleJeu();
+
 						afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 					break;
 					case SDLK_UP:
+						setGrilleJeu(3, positionDKJr, 0);//enleve dk
+						effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+
+						setGrilleJeu(2, positionDKJr, DKJR);
+						afficherGrilleJeu();
+						afficherDKJr(10, (positionDKJr * 2) + 7, 8);
+
+						pthread_mutex_unlock(&mutexGrilleJeu);
+						nanosleep(&temps, NULL);
+						pthread_mutex_lock(&mutexGrilleJeu);
+
+						effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+						afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
+						setGrilleJeu(2, positionDKJr);//enleve dk
+						setGrilleJeu(3, positionDKJr, 1);
 					
-					break;
+						break;
 				}	
 			case LIANE_BAS:
+				
 			
 			break;
 			case DOUBLE_LIANE_BAS:
@@ -293,5 +338,5 @@ void * FctThreadDKJr(void* arg)
 
 void HandlerSIGQUIT(int sig)
 {
-	printf("Evenement\n");
+	//sprintf("\nEvenement\n");
 }
