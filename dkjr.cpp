@@ -126,6 +126,9 @@ int main(int argc, char* argv[])
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
 
 
+	pthread_join(threadDKJr, NULL);
+
+
 	pthread_exit(0);
 
 }
@@ -346,7 +349,7 @@ void * FctThreadDKJr(void* arg)
 				printf("LIANE_BAS\n");
 				if(evenement==SDLK_DOWN)
 				{
-					setGrilleJeu(2, positionDKJr);//enleve dk
+					setGrilleJeu(2, positionDKJr,0);//enleve dk
 					setGrilleJeu(3, positionDKJr, 1);
 					effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 					afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
@@ -391,6 +394,44 @@ void * FctThreadDKJr(void* arg)
 
 						afficherDKJr(7, (positionDKJr * 2) + 7, 7-positionDKJr);
 					}
+					else
+					{
+						setGrilleJeu(1, positionDKJr, 0);
+						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+
+						positionDKJr--;
+
+						setGrilleJeu(0, positionDKJr, DKJR);
+						afficherGrilleJeu();
+
+						afficherDKJr(6, 11, 9);
+
+						temps = { 0, 500000000 };
+						nanosleep(&temps, NULL);
+
+						setGrilleJeu(0, positionDKJr, 0);
+						effacerCarres(5, 12, 3, 2);
+
+						afficherDKJr(0, 0, 12);
+
+						nanosleep(&temps, NULL);
+
+						effacerCarres(6, 11, 2, 2);
+						afficherDKJr(0, 0, 13);
+
+						nanosleep(&temps, NULL);
+						
+						positionDKJr=1;
+						effacerCarres(11, 7, 2, 2);
+
+
+						setGrilleJeu(3, 1, DKJR); 
+						afficherGrilleJeu();
+						afficherDKJr(11, 9, 1); 
+
+						etatDKJr=LIBRE_BAS;
+
+					}
 
 
 					break;
@@ -413,6 +454,38 @@ void * FctThreadDKJr(void* arg)
 					break;
 					case SDLK_UP:
 
+						if(positionDKJr == 7 || positionDKJr == 5)
+							break;
+
+
+						setGrilleJeu(1, positionDKJr, 0);//enleve dk
+						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+
+						if(positionDKJr == 6)
+						{
+							printf("IF\n");
+							etatDKJr=LIANE_HAUT;
+							setGrilleJeu(0, positionDKJr, DKJR);
+							afficherGrilleJeu();
+							afficherDKJr(6, (positionDKJr * 2) + 7, 7);
+							break;
+						}
+
+
+
+						setGrilleJeu(0, positionDKJr, DKJR);
+						afficherGrilleJeu();
+						afficherDKJr(6, (positionDKJr * 2) + 7, 8);
+
+						pthread_mutex_unlock(&mutexGrilleJeu);
+						nanosleep(&temps, NULL);
+						pthread_mutex_lock(&mutexGrilleJeu);
+
+						
+						setGrilleJeu(0, positionDKJr);//enleve dk
+						setGrilleJeu(3, positionDKJr, 1);
+						effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
+						afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 					break;	
 					case SDLK_DOWN:
 					if(positionDKJr==7)
@@ -423,14 +496,21 @@ void * FctThreadDKJr(void* arg)
 						afficherGrilleJeu();
 						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 						afficherDKJr(10, (positionDKJr * 2) + 7, 5);
-					}
-						
+					}						
 					break;	
 				}
 			
 			break;
 			case LIANE_HAUT:
-
+				printf("LIANE_BAS\n");
+				if(evenement==SDLK_DOWN)
+				{
+					setGrilleJeu(0, positionDKJr,0);//enleve dk
+					setGrilleJeu(1, positionDKJr, 1);
+					effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
+					afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
+					etatDKJr=LIBRE_HAUT;
+				}
 			break;
 
 		}
