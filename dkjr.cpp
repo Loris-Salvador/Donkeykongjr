@@ -407,19 +407,25 @@ void * FctThreadDKJr(void* arg)
 						afficherDKJr(6, 11, 9);
 
 						temps = { 0, 500000000 };
+						pthread_mutex_unlock(&mutexGrilleJeu);
 						nanosleep(&temps, NULL);
+						pthread_mutex_lock(&mutexGrilleJeu);
 
 						setGrilleJeu(0, positionDKJr, 0);
 						effacerCarres(5, 12, 3, 2);
 
 						afficherDKJr(0, 0, 12);
 
+						pthread_mutex_unlock(&mutexGrilleJeu);
 						nanosleep(&temps, NULL);
+						pthread_mutex_lock(&mutexGrilleJeu);
 
 						effacerCarres(6, 11, 2, 2);
 						afficherDKJr(0, 0, 13);
 
+						pthread_mutex_unlock(&mutexGrilleJeu);
 						nanosleep(&temps, NULL);
+						pthread_mutex_lock(&mutexGrilleJeu);
 						
 						positionDKJr=1;
 						effacerCarres(11, 7, 2, 2);
