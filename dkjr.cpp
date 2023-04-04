@@ -379,16 +379,20 @@ void * FctThreadDKJr(void* arg)
 				switch (evenement)
 				{
 					case SDLK_LEFT:
+					if(positionDKJr>3)
+					{
+						setGrilleJeu(1, positionDKJr, 0);
+						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 
-					setGrilleJeu(1, positionDKJr, 0);
-					effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+						positionDKJr--;
 
-					positionDKJr--;
+						setGrilleJeu(1, positionDKJr, DKJR);
+						afficherGrilleJeu();
 
-					setGrilleJeu(1, positionDKJr, DKJR);
-					afficherGrilleJeu();
+						afficherDKJr(7, (positionDKJr * 2) + 7, 7-positionDKJr);
+					}
 
-					afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
+
 					break;
 					case SDLK_RIGHT:
 
@@ -401,20 +405,26 @@ void * FctThreadDKJr(void* arg)
 
 						setGrilleJeu(1, positionDKJr, DKJR);
 						afficherGrilleJeu();
-
-						afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
+						if(positionDKJr!=7)
+							afficherDKJr(7, (positionDKJr * 2) + 7, 7-positionDKJr);
+						else
+							afficherDKJr(7, (positionDKJr * 2) + 7, 8);
 					}
 					break;
 					case SDLK_UP:
 
 					break;	
 					case SDLK_DOWN:
+					if(positionDKJr==7)
+					{
 						etatDKJr=DOUBLE_LIANE_BAS;
 						setGrilleJeu(1, positionDKJr);//enleve dk
 						setGrilleJeu(2, positionDKJr, 1);
 						afficherGrilleJeu();
 						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 						afficherDKJr(10, (positionDKJr * 2) + 7, 5);
+					}
+						
 					break;	
 				}
 			
