@@ -69,6 +69,9 @@ int  positionDKJr = 1;
 int  evenement = AUCUN_EVENEMENT;
 int etatDKJr;
 
+//
+int echec;
+
 typedef struct
 {
   int type;
@@ -125,9 +128,15 @@ int main(int argc, char* argv[])
 
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
 
-
 	pthread_join(threadDKJr, NULL);
 
+	while(echec < 3)
+	{
+		pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
+		pthread_join(threadDKJr, NULL);
+	}
+	
+	//pause();
 
 	pthread_exit(0);
 
@@ -426,16 +435,22 @@ void * FctThreadDKJr(void* arg)
 						pthread_mutex_unlock(&mutexGrilleJeu);
 						nanosleep(&temps, NULL);
 						pthread_mutex_lock(&mutexGrilleJeu);
+
+						//
+
+						echec++;
 						
-						positionDKJr=1;
+						// positionDKJr=1;
 						effacerCarres(11, 7, 2, 2);
 
 
-						setGrilleJeu(3, 1, DKJR); 
-						afficherGrilleJeu();
-						afficherDKJr(11, 9, 1); 
+						// setGrilleJeu(3, 1, DKJR); 
+						// afficherGrilleJeu();
+						// afficherDKJr(11, 9, 1); 
 
-						etatDKJr=LIBRE_BAS;
+						//etatDKJr=LIBRE_BAS;
+
+						on = false;
 
 					}
 
