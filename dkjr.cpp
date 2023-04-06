@@ -63,7 +63,7 @@ pthread_key_t keySpec;
 
 bool MAJDK = false;
 int  score = 0;
-bool MAJScore = true;
+bool MAJScore = false;
 int  delaiEnnemis = 4000;
 int  positionDKJr = 1;
 int  evenement = AUCUN_EVENEMENT;
@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
 {
 	sigset_t mask;
     sigemptyset(&mask);
+	int echec=0;
 
 	struct sigaction sigAct;
 
@@ -115,6 +116,7 @@ int main(int argc, char* argv[])
 	//Initialisation cond
 
 	pthread_cond_init(&condDK, NULL);
+	pthread_cond_init(&condScore, NULL);
 
 	//Thread cle
 
@@ -136,17 +138,24 @@ int main(int argc, char* argv[])
 	printf("Initialisation thread DK\n");
 
 	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
+
+	//ThreadScore
+	printf("Initialisation thread DK\n");
+
+	pthread_create(&threadScore, NULL, FctThreadScore, NULL);
 	
 
-	pthread_join(threadDKJr, NULL);
+	//Thread DkJr
+	printf("Initialisation Thread DkJr\n");
 
 	while(echec < 3)
 	{
 		pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 		pthread_join(threadDKJr, NULL);
+		echec++;
+		afficherEchec(echec);
+
 	}
-	
-	//pause();
 
 	pthread_exit(0);
 
@@ -445,8 +454,18 @@ void * FctThreadDKJr(void* arg)
 							setGrilleJeu(0, positionDKJr, 0);
 							effacerCarres(3, 11, 3, 2);
 
-							MAJDK = true;
+							pthread_mutex_lock(&mutexDK);
+							MAJDK=true;
+							pthread_mutex_unlock(&mutexDK);
 							pthread_cond_signal(&condDK);
+
+							pthread_mutex_lock(&mutexScore);
+							score=score+10;
+							MAJScore=true;
+							pthread_mutex_unlock(&mutexScore);
+							pthread_cond_signal(&condScore);
+
+							printf("JJJJJJJJJJJJJJJJRRRRRRRRRRRR\n");
 
 							afficherDKJr(0, 0, 11);
 
@@ -484,9 +503,6 @@ void * FctThreadDKJr(void* arg)
 							//pthread_mutex_unlock(&mutexGrilleJeu);
 							nanosleep(&temps, NULL);
 							//pthread_mutex_lock(&mutexGrilleJeu);
-
-							/////////////////////////
-							echec++;
 							
 							effacerCarres(11, 7, 2, 2);
 
@@ -593,50 +609,81 @@ void* FctThreadDK(void * param)
 
     while(1)
     {
-        pthread_mutex_lock(&mutexDK);
-        pthread_cond_wait(&condDK, &mutexDK);
-
-        if(MAJDK == true)
+		pthread_mutex_lock(&mutexDK);
+        while(MAJDK==false)
         {
-            switch(cage)
-            {
-                case 1:
-                    effacerCarres(2,7,2,2);
-					afficherCage(4);
-                    cage++;
-                    break;
-                
-                case 2:
-                    effacerCarres(2,9,2,2); 
-					afficherCage(4);
-                    cage++;
-                    break;
-
-                case 3:
-                    effacerCarres(4,7,2,2); 
-					afficherCage(4);
-                    cage++;
-                    break;
-
-                case 4:
-                    effacerCarres(4,9,2,3);
-                    afficherRireDK();
-                    nanosleep(&temps, NULL);
-                    effacerCarres(3,8,2,2);
-                    pthread_mutex_lock(&mutexScore);
-                    score = score + 10;
-                    MAJScore = true;
-                    pthread_mutex_unlock(&mutexScore);
-                    pthread_cond_signal(&condScore);
-					for(int i=1; i<=4;i++)
-						afficherCage(i);
-                    cage = 1;
-                    break;
-            }    
+            pthread_cond_wait(&condDK, &mutexDK);
         }
-        MAJDK = false;
+        MAJDK=false;
         pthread_mutex_unlock(&mutexDK);
+
+		switch(cage)
+		{
+			case 1:
+				effacerCarres(2,7,2,2);
+				afficherCage(4);
+				cage++;
+				break;
+			
+			case 2:
+				effacerCarres(2,9,2,2); 
+				afficherCage(4);
+				cage++;
+				break;
+
+			case 3:
+				effacerCarres(4,7,2,2); 
+				afficherCage(4);
+				cage++;
+				break;
+
+			case 4:
+				effacerCarres(4,9,2,3);
+				afficherRireDK();
+				nanosleep(&temps, NULL);
+				effacerCarres(3,8,2,2);
+				for(int i=1; i<=4;i++)
+					afficherCage(i);
+				cage = 1;
+				pthread_mutex_lock(&mutexScore);
+				score = score +10;
+				MAJScore=true;
+				pthread_mutex_unlock(&mutexScore);
+				pthread_cond_signal(&condScore);
+				printf("THHHHHREEEEADDDDDKKKKKK\n");
+				break;
+		}    
     }
+}
+
+void * FctThreadScore(void * param)
+{
+	int tmp;
+
+	printf("-------------------------------------------\n");
+
+	afficherScore(score);
+
+	while(1)
+	{
+		tmp = score;
+		pthread_mutex_lock(&mutexScore);
+        while(MAJScore == false)
+        {
+            pthread_cond_wait(&condScore, &mutexScore);
+        }
+		if(score>tmp)
+		{
+			afficherScore(score);
+		}
+		MAJScore=false;	
+        pthread_mutex_unlock(&mutexScore);
+	}
+
+	printf("ThreadScore-------------------------------------------\n");
+
+
+
 }
 
 void HandlerSIGQUIT(int sig)
