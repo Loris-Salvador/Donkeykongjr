@@ -126,6 +126,11 @@ int main(int argc, char* argv[])
 	pthread_cond_init(&condDK, NULL);
 	pthread_cond_init(&condScore, NULL);
 
+
+	//Key
+
+	pthread_key_create(&keySpec, DestructeurVS);
+
 	//Thread cle
 
 	printf("Initialisation Thread Cle\n");
@@ -667,7 +672,6 @@ void* FctThreadDK(void * param)
 				MAJScore=true;
 				pthread_mutex_unlock(&mutexScore);
 				pthread_cond_signal(&condScore);
-				printf("THHHHHREEEEADDDDDKKKKKK\n");
 				break;
 		}    
     }
@@ -676,8 +680,6 @@ void* FctThreadDK(void * param)
 void * FctThreadScore(void * param)
 {
 	int tmp;
-
-	printf("-------------------------------------------\n");
 
 	afficherScore(score);
 
@@ -696,10 +698,6 @@ void * FctThreadScore(void * param)
 		MAJScore=false;	
         pthread_mutex_unlock(&mutexScore);
 	}
-
-	printf("ThreadScore-------------------------------------------\n");
-
-
 
 }
 
@@ -723,7 +721,6 @@ void * FctThreadEnnemis(void * param)
 		temps = { delaiEnnemis / 1000, delaiEnnemis / 100000};
 		srand(time(0));
 		ennemi = (rand()% 2) + 0;
-		printf("Ennemi : %d\n", ennemi);
 
 		do 
 		{
@@ -741,17 +738,58 @@ void * FctThreadEnnemis(void * param)
 			//printf("CCCCRRROOOOOCOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
 			pthread_create(&threadCroco, NULL, FctThreadCroco, NULL);
 		}
-
 	}
 }
 void * FctThreadCorbeau(void * param)
 {
+	struct timespec temps = { 0, 700000000 };
+
+	int* position = (int*) malloc(sizeof(int));
+	if (position == NULL)
+	{
+		printf("Allocation a échoué");
+		exit(1);
+	}
+
+	pthread_setspecific(keySpec, (const void*)position);
+
+	*position=0;
+
+	for(int i=0; i<8; i++, (*position)++)
+	{
+		pthread_mutex_lock(&mutexGrilleJeu);
+
+		setGrilleJeu(2, *position, CORBEAU, pthread_self());
+		afficherGrilleJeu();
+		afficherCorbeau((*position) * 2 + 8, i%2+1);
+
+		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		nanosleep(&temps, NULL);
+
+
+		pthread_mutex_lock(&mutexGrilleJeu);
+		setGrilleJeu(2, *position);
+		effacerCarres(9, (*position) * 2 + 8,2,1);
+		pthread_mutex_unlock(&mutexGrilleJeu);
+	}
+
+
+
+
+
+
+
+
+	sleep(5);
+
+	pthread_exit(0);
 
 }
 
 void * FctThreadCroco(void * param)
 {
-
+	pthread_exit(0);
 }
 
 void HandlerSIGQUIT(int sig)
@@ -765,4 +803,13 @@ void HandlerSIGALRM(int sig)
 
 	if(delaiEnnemis > 2500)
 		alarm(15);
+}
+
+void DestructeurVS(void* p)
+{
+	printf("Destructeur variable specifique\n");
+
+	fflush(stdout);
+	free(p);
+
 }
