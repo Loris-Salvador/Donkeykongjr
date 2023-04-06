@@ -799,6 +799,7 @@ void * FctThreadCorbeau(void * param)
 		{
 			grilleJeu[2][(*position)].type = 0;
 			pthread_kill(threadDKJr, SIGINT);
+			pthread_mutex_unlock(&mutexGrilleJeu);
 			pthread_exit(0);
 		}
 	
@@ -860,8 +861,6 @@ void HandlerSIGINT(int sig)
 
 	effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 
-	pthread_mutex_unlock(&mutexGrilleJeu);
-	pthread_mutex_unlock(&mutexEvenement);
 
 	pthread_exit(0);
 
