@@ -50,6 +50,8 @@ pthread_t threadDKJr;
 pthread_t threadEvenements;
 pthread_t threadScore;
 pthread_t threadEnnemis;
+// pthread_t threadCorbeau;
+// pthread_t threadCroco;
 
 pthread_cond_t condDK;
 pthread_cond_t condScore;
@@ -108,6 +110,22 @@ int main(int argc, char* argv[])
     sigaction(SIGALRM, &sigAct, NULL);
 
 	sigaddset(&mask, SIGALRM);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+	sigAct.sa_handler = HandlerSIGUSR1;
+    sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
+    sigaction(SIGUSR1, &sigAct, NULL);
+
+	sigaddset(&mask, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+	sigAct.sa_handler = HandlerSIGINT;
+    sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
+    sigaction(SIGINT, &sigAct, NULL);
+
+	sigaddset(&mask, SIGINT);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
 
@@ -293,6 +311,9 @@ void * FctThreadDKJr(void* arg)
 	sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGQUIT);
+
+	sigaddset(&mask, SIGINT);
+
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	struct timespec temps;
@@ -358,6 +379,14 @@ void * FctThreadDKJr(void* arg)
 					case SDLK_UP:
 						setGrilleJeu(3, positionDKJr, 0);//enleve dk
 						effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+
+						if(grilleJeu[2][positionDKJr].type==CORBEAU)
+						{
+							pthread_kill(grilleJeu[2][positionDKJr].tid, SIGUSR1);
+							on = false;
+							break;
+						}
+				
 
 						if(positionDKJr == 5 || positionDKJr == 1)
 						{
@@ -744,6 +773,13 @@ void * FctThreadCorbeau(void * param)
 {
 	struct timespec temps = { 0, 700000000 };
 
+	sigset_t mask;
+
+	sigemptyset(&mask);
+    sigaddset(&mask, SIGUSR1);
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+
 	int* position = (int*) malloc(sizeof(int));
 	if (position == NULL)
 	{
@@ -755,33 +791,33 @@ void * FctThreadCorbeau(void * param)
 
 	*position=0;
 
-	for(int i=0; i<8; i++, (*position)++)
+	while((*position) < 8)
 	{
 		pthread_mutex_lock(&mutexGrilleJeu);
 
+		if(grilleJeu[2][(*position)].type == DKJR)
+		{
+			grilleJeu[2][(*position)].type = 0;
+			pthread_kill(threadDKJr, SIGINT);
+			pthread_exit(0);
+		}
+	
+
 		setGrilleJeu(2, *position, CORBEAU, pthread_self());
 		afficherGrilleJeu();
-		afficherCorbeau((*position) * 2 + 8, i%2+1);
+		afficherCorbeau((*position) * 2 + 8, (*position)%2+1);
 
 		pthread_mutex_unlock(&mutexGrilleJeu);
 
 		nanosleep(&temps, NULL);
 
-
 		pthread_mutex_lock(&mutexGrilleJeu);
 		setGrilleJeu(2, *position);
 		effacerCarres(9, (*position) * 2 + 8,2,1);
 		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		(*position)++;
 	}
-
-
-
-
-
-
-
-
-	sleep(5);
 
 	pthread_exit(0);
 
@@ -803,6 +839,32 @@ void HandlerSIGALRM(int sig)
 
 	if(delaiEnnemis > 2500)
 		alarm(15);
+}
+void HandlerSIGUSR1(int sig)
+{
+	int *var = (int*)pthread_getspecific(keySpec);
+
+	printf("SIGUSR1\n");
+
+	effacerCarres(9, (*var) * 2 + 8,2,1);
+
+	pthread_exit(0);
+
+}
+void HandlerSIGINT(int sig)
+{
+	printf("SIGINT\n");
+
+	if(etatDKJr == LIBRE_BAS)
+		pthread_mutex_unlock(&mutexEvenement);
+
+	effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+
+	pthread_mutex_unlock(&mutexGrilleJeu);
+	pthread_mutex_unlock(&mutexEvenement);
+
+	pthread_exit(0);
+
 }
 
 void DestructeurVS(void* p)
