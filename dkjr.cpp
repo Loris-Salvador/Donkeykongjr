@@ -137,10 +137,15 @@ int main(int argc, char* argv[])
 	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
 
 	//ThreadScore
-	printf("Initialisation thread DK\n");
+	printf("Initialisation thread Score\n");
 
 	pthread_create(&threadScore, NULL, FctThreadScore, NULL);
-	
+
+
+	//ThreadEnnemis
+	printf("Initialisation thread Ennemis\n");
+
+	pthread_create(&threadEnnemis, NULL, FctThreadEnnemis, NULL);
 
 	//Thread DkJr
 	printf("Initialisation Thread DkJr\n");
@@ -685,6 +690,15 @@ void * FctThreadScore(void * param)
 
 
 
+}
+
+
+void * FctThreadEnnemis(void * param)
+{
+	int ennemi;
+	srand(time(0));
+	ennemi = (rand()% 2) + 0;
+	printf("Ennemi : %d\n", ennemi);
 }
 
 void HandlerSIGQUIT(int sig)
