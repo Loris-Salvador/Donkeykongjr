@@ -129,6 +129,15 @@ int main(int argc, char* argv[])
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
 
+	sigAct.sa_handler = HandlerSIGUSR2;
+    sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
+    sigaction(SIGUSR2, &sigAct, NULL);
+
+	sigaddset(&mask, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+
 
 	ouvrirFenetreGraphique();
 
@@ -783,7 +792,7 @@ void * FctThreadCorbeau(void * param)
 	int* position = (int*) malloc(sizeof(int));
 	if (position == NULL)
 	{
-		printf("Allocation a échoué");
+		printf("Allocation CORBEAU a échoué");
 		exit(1);
 	}
 
@@ -826,12 +835,59 @@ void * FctThreadCorbeau(void * param)
 
 void * FctThreadCroco(void * param)
 {
+	struct timespec temps = { 0, 700000000 };
+
+	sigset_t mask;
+
+	sigemptyset(&mask);
+    sigaddset(&mask, SIGUSR2);
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+	S_CROCO* croco = (S_CROCO*) malloc(sizeof(S_CROCO));
+	if (croco == NULL)
+	{
+		printf("Allocation CROCO a échoué");
+		exit(1);
+	}
+
+	(*croco).position = 2;
+
+	while(croco->position < 8)
+	{
+		pthread_mutex_lock(&mutexGrilleJeu);
+	
+		setGrilleJeu(1, croco->position, CROCO, pthread_self());
+		afficherGrilleJeu();
+		afficherCroco(croco->position * 2 + 7, (croco->position-1)%2+1);
+
+		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		nanosleep(&temps, NULL);
+
+		pthread_mutex_lock(&mutexGrilleJeu);
+		setGrilleJeu(1, croco->position);
+		effacerCarres(8, croco->position * 2 + 7,1,1);
+		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		(*croco).position++;
+	}
+
+	afficherCroco(0, 3);
+	nanosleep(&temps, NULL);
+	effacerCarres(9, 23, 1,1);
+
+
+
+
+
+
+
 	pthread_exit(0);
 }
 
 void HandlerSIGQUIT(int sig)
 {
-	//sprintf("\nEvenement\n");
+	//printf("\nEvenement\n");
 }
 void HandlerSIGALRM(int sig)
 {
@@ -850,6 +906,13 @@ void HandlerSIGUSR1(int sig)
 	effacerCarres(9, (*var) * 2 + 8,2,1);
 
 	pthread_exit(0);
+
+}
+void HandlerSIGUSR2(int sig)
+{
+	int *var = (int*)pthread_getspecific(keySpec);
+
+	printf("SIGUSR2\n");
 
 }
 void HandlerSIGINT(int sig)
