@@ -332,7 +332,7 @@ void effacerPoints(int x, int y, int nbX, int nbY)
 	
 	pthread_mutex_lock(&mutexSDL); 
 	
-	rect.x = x;
+	rect.x = x; 
 	rect.y = y;
 	rect.w = nbX;
 	rect.h = nbY;

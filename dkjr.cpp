@@ -112,6 +112,9 @@ int main(int argc, char* argv[])
 	pthread_mutex_init(&mutexDK, NULL);
 	pthread_mutex_init(&mutexScore, NULL);  	
 		
+	//Initialisation cond
+
+	pthread_cond_init(&condDK, NULL);
 
 	//Thread cle
 
@@ -323,6 +326,7 @@ void * FctThreadDKJr(void* arg)
 							afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 						}
 
+
 					break;
 					case SDLK_UP:
 						setGrilleJeu(3, positionDKJr, 0);//enleve dk
@@ -441,6 +445,9 @@ void * FctThreadDKJr(void* arg)
 							setGrilleJeu(0, positionDKJr, 0);
 							effacerCarres(3, 11, 3, 2);
 
+							MAJDK = true;
+							pthread_cond_signal(&condDK);
+
 							afficherDKJr(0, 0, 11);
 
 							nanosleep(&temps, NULL);
@@ -502,10 +509,10 @@ void * FctThreadDKJr(void* arg)
 
 						setGrilleJeu(1, positionDKJr, DKJR);
 						afficherGrilleJeu();
-						if(positionDKJr!=7)
+						if(positionDKJr<7)
 							afficherDKJr(7, (positionDKJr * 2) + 7, 7-positionDKJr);
-						else
-							afficherDKJr(7, (positionDKJr * 2) + 7, 8);
+						else if(positionDKJr==7)
+							afficherDKJr(7, (positionDKJr * 2) + 7, 6);
 					}
 					break;
 					case SDLK_UP:
@@ -576,9 +583,60 @@ void * FctThreadDKJr(void* arg)
 	pthread_exit(0);
 }
 
-void* FctThreadDK(void *args)
+void* FctThreadDK(void * param)
 {
+    struct timespec temps = {0, 700000000};
+    int cage = 1;
 
+	for(int i=1; i<=4;i++)
+		afficherCage(i);
+
+    while(1)
+    {
+        pthread_mutex_lock(&mutexDK);
+        pthread_cond_wait(&condDK, &mutexDK);
+
+        if(MAJDK == true)
+        {
+            switch(cage)
+            {
+                case 1:
+                    effacerCarres(2,7,2,2);
+					afficherCage(4);
+                    cage++;
+                    break;
+                
+                case 2:
+                    effacerCarres(2,9,2,2); 
+					afficherCage(4);
+                    cage++;
+                    break;
+
+                case 3:
+                    effacerCarres(4,7,2,2); 
+					afficherCage(4);
+                    cage++;
+                    break;
+
+                case 4:
+                    effacerCarres(4,9,2,3);
+                    afficherRireDK();
+                    nanosleep(&temps, NULL);
+                    effacerCarres(3,8,2,2);
+                    pthread_mutex_lock(&mutexScore);
+                    score = score + 10;
+                    MAJScore = true;
+                    pthread_mutex_unlock(&mutexScore);
+                    pthread_cond_signal(&condScore);
+					for(int i=1; i<=4;i++)
+						afficherCage(i);
+                    cage = 1;
+                    break;
+            }    
+        }
+        MAJDK = false;
+        pthread_mutex_unlock(&mutexDK);
+    }
 }
 
 void HandlerSIGQUIT(int sig)
