@@ -128,6 +128,13 @@ int main(int argc, char* argv[])
 
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
 
+
+	//ThreadDK
+	printf("Initialisation thread DK\n");
+
+	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
+	
+
 	pthread_join(threadDKJr, NULL);
 
 	while(echec < 3)
@@ -203,11 +210,15 @@ void *FctThreadCle(void* arg)
 			
 		nanosleep(&temps, NULL);
 
+		pthread_mutex_lock(&mutexGrilleJeu);
+
 		if(pos<3)//2 carres à supprimer
 			effacerCarres(3, 12 + (pos-1), 2);	
 
 		else//4 carres à supprimer
 			effacerCarres(3, 13, 2, 2);
+			
+		pthread_mutex_unlock(&mutexGrilleJeu);
 
 		if(pos==1 || pos ==4)
 			sens = sens * -1;
@@ -254,7 +265,7 @@ void * FctThreadDKJr(void* arg)
     sigaddset(&mask, SIGQUIT);
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
-	struct timespec temps = { 1, 400000000 };
+	struct timespec temps;
 
 	bool on = true;
 
@@ -273,6 +284,7 @@ void * FctThreadDKJr(void* arg)
 	{
 		printf("Attente...\n");
 		pause();
+		temps = { 1, 400000000 };
 		printf("Sortie de pause()\n");
 		pthread_mutex_lock(&mutexEvenement);
 		pthread_mutex_lock(&mutexGrilleJeu);
@@ -405,6 +417,7 @@ void * FctThreadDKJr(void* arg)
 					}
 					else
 					{
+						temps = { 0, 500000000 };
 						setGrilleJeu(1, positionDKJr, 0);
 						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 
@@ -413,44 +426,66 @@ void * FctThreadDKJr(void* arg)
 						setGrilleJeu(0, positionDKJr, DKJR);
 						afficherGrilleJeu();
 
-						afficherDKJr(6, 11, 9);
+						if(grilleJeu[0][1].type == 4)
+						{
+							afficherDKJr(6, 11, 9);
 
-						temps = { 0, 500000000 };
-						pthread_mutex_unlock(&mutexGrilleJeu);
-						nanosleep(&temps, NULL);
-						pthread_mutex_lock(&mutexGrilleJeu);
+							nanosleep(&temps, NULL);
 
-						setGrilleJeu(0, positionDKJr, 0);
-						effacerCarres(5, 12, 3, 2);
+							effacerCarres(5, 12, 3, 2);
 
-						afficherDKJr(0, 0, 12);
+							afficherDKJr(6, 11, 10);
 
-						pthread_mutex_unlock(&mutexGrilleJeu);
-						nanosleep(&temps, NULL);
-						pthread_mutex_lock(&mutexGrilleJeu);
+							nanosleep(&temps, NULL);
 
-						effacerCarres(6, 11, 2, 2);
-						afficherDKJr(0, 0, 13);
+							setGrilleJeu(0, positionDKJr, 0);
+							effacerCarres(3, 11, 3, 2);
 
-						pthread_mutex_unlock(&mutexGrilleJeu);
-						nanosleep(&temps, NULL);
-						pthread_mutex_lock(&mutexGrilleJeu);
+							afficherDKJr(0, 0, 11);
 
-						//
+							nanosleep(&temps, NULL);
 
-						echec++;
-						
-						// positionDKJr=1;
-						effacerCarres(11, 7, 2, 2);
+							effacerCarres(6, 10, 2, 3);
 
+							setGrilleJeu(3, 1, DKJR); 
+							afficherGrilleJeu();
+							afficherDKJr(11, 9, 1); 
+							etatDKJr = LIBRE_BAS; 
+							positionDKJr = 1;	
+						}
+						else
+						{
+							afficherDKJr(6, 11, 9);
 
-						// setGrilleJeu(3, 1, DKJR); 
-						// afficherGrilleJeu();
-						// afficherDKJr(11, 9, 1); 
+							
+							//pthread_mutex_unlock(&mutexGrilleJeu);
+							nanosleep(&temps, NULL);
+							//pthread_mutex_lock(&mutexGrilleJeu);
 
-						//etatDKJr=LIBRE_BAS;
+							setGrilleJeu(0, positionDKJr, 0);
+							effacerCarres(5, 12, 3, 2);
 
-						on = false;
+							afficherDKJr(0, 0, 12);
+
+							//pthread_mutex_unlock(&mutexGrilleJeu);
+							nanosleep(&temps, NULL);
+							//pthread_mutex_lock(&mutexGrilleJeu);
+
+							effacerCarres(6, 11, 2, 2);
+							afficherDKJr(0, 0, 13);
+
+							//pthread_mutex_unlock(&mutexGrilleJeu);
+							nanosleep(&temps, NULL);
+							//pthread_mutex_lock(&mutexGrilleJeu);
+
+							/////////////////////////
+							echec++;
+							
+							effacerCarres(11, 7, 2, 2);
+
+							on = false;
+						}
+
 
 					}
 
@@ -504,7 +539,7 @@ void * FctThreadDKJr(void* arg)
 
 						
 						setGrilleJeu(0, positionDKJr);//enleve dk
-						setGrilleJeu(3, positionDKJr, 1);
+						setGrilleJeu(1, positionDKJr, 1);
 						effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
 						afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 					break;	
@@ -541,6 +576,10 @@ void * FctThreadDKJr(void* arg)
 	pthread_exit(0);
 }
 
+void* FctThreadDK(void *args)
+{
+
+}
 
 void HandlerSIGQUIT(int sig)
 {
