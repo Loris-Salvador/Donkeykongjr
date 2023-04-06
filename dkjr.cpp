@@ -101,6 +101,17 @@ int main(int argc, char* argv[])
 	sigaddset(&mask, SIGQUIT);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
+
+	sigAct.sa_handler = HandlerSIGALRM;
+    sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
+    sigaction(SIGALRM, &sigAct, NULL);
+
+	sigaddset(&mask, SIGALRM);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+
+
 	ouvrirFenetreGraphique();
 
 	//intialisation mutex
@@ -695,13 +706,63 @@ void * FctThreadScore(void * param)
 
 void * FctThreadEnnemis(void * param)
 {
-	int ennemi;
-	srand(time(0));
-	ennemi = (rand()% 2) + 0;
-	printf("Ennemi : %d\n", ennemi);
+	int ennemi, result;
+	pthread_t threadCorbeau, threadCroco;
+	struct timespec temps;
+
+	sigset_t mask;
+
+	sigemptyset(&mask);
+    sigaddset(&mask, SIGALRM);
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+	alarm(15);
+
+	while(1)
+	{
+		temps = { delaiEnnemis / 1000, delaiEnnemis / 100000};
+		srand(time(0));
+		ennemi = (rand()% 2) + 0;
+		printf("Ennemi : %d\n", ennemi);
+
+		do 
+		{
+			result = nanosleep(&temps, &temps);
+		} 
+		while (result == -1);
+
+		if(ennemi ==  0)
+		{
+			//printf("COOOOOOOOORRRRRRRBBBBBBBEAAAAAAAAAAAUUUUUUUUUU\n");
+			pthread_create(&threadCorbeau, NULL, FctThreadCorbeau, NULL);
+		}
+		else
+		{
+			//printf("CCCCRRROOOOOCOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+			pthread_create(&threadCroco, NULL, FctThreadCroco, NULL);
+		}
+
+	}
+}
+void * FctThreadCorbeau(void * param)
+{
+
+}
+
+void * FctThreadCroco(void * param)
+{
+
 }
 
 void HandlerSIGQUIT(int sig)
 {
 	//sprintf("\nEvenement\n");
+}
+void HandlerSIGALRM(int sig)
+{
+	printf("SIGALRM\n");
+	delaiEnnemis = delaiEnnemis - 250;
+
+	if(delaiEnnemis > 2500)
+		alarm(15);
 }
