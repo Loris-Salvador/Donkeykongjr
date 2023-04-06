@@ -851,6 +851,7 @@ void * FctThreadCroco(void * param)
 	}
 
 	(*croco).position = 2;
+	(*croco).haut = true;
 
 	while(croco->position < 8)
 	{
@@ -876,7 +877,32 @@ void * FctThreadCroco(void * param)
 	nanosleep(&temps, NULL);
 	effacerCarres(9, 23, 1,1);
 
+	(*croco).haut = false;
+	(*croco).position--;
 
+	while(croco->position > 0)
+	{
+		pthread_mutex_lock(&mutexGrilleJeu);
+	
+		setGrilleJeu(3, croco->position, CROCO, pthread_self());
+		afficherGrilleJeu();
+		if(croco->position % 2 == 1)
+			afficherCroco(croco->position * 2 + 8, 5);//croco->position - (croco->position%croco->position));
+		else
+			afficherCroco(croco->position * 2 + 8, 4);
+
+			
+		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		nanosleep(&temps, NULL);
+
+		pthread_mutex_lock(&mutexGrilleJeu);
+		setGrilleJeu(3, croco->position);
+		effacerCarres(12, croco->position * 2 + 8,1,1);
+		pthread_mutex_unlock(&mutexGrilleJeu);
+
+		(*croco).position--;
+	}
 
 
 
