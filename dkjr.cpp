@@ -136,6 +136,22 @@ int main(int argc, char* argv[])
 
 	sigaddset(&mask, SIGUSR2);
     sigprocmask(SIG_BLOCK, &mask, NULL);
+
+	sigAct.sa_handler = HandlerSIGHUP;
+    sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
+    sigaction(SIGHUP, &sigAct, NULL);
+
+	sigaddset(&mask, SIGHUP);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+	sigAct.sa_handler = HandlerSIGCHLD;
+    sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_flags=0;
+    sigaction(SIGCHLD, &sigAct, NULL);
+
+	sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
 	
 
 	ouvrirFenetreGraphique();
@@ -323,6 +339,10 @@ void * FctThreadDKJr(void* arg)
 
 	sigaddset(&mask, SIGINT);
 
+	sigaddset(&mask, SIGHUP);
+
+	sigaddset(&mask, SIGCHLD);
+
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	struct timespec temps;
@@ -366,6 +386,19 @@ void * FctThreadDKJr(void* arg)
 							setGrilleJeu(3, positionDKJr, 0);
 							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
 
+							if(grilleJeu[3][positionDKJr-1].type == CROCO)
+							{
+								printf("___________________________________________\n");
+								printf("PID CROCO  DK JR: %u\n", grilleJeu[3][positionDKJr-1].tid);
+								//Bortimer
+								pthread_kill(grilleJeu[3][positionDKJr-1].tid, SIGUSR2);
+								printf("APRES KILL\n");
+								on = false;
+
+								// pthread_exit(0);
+								break;
+							}
+
 							positionDKJr--;
 
 							setGrilleJeu(3, positionDKJr, DKJR);
@@ -379,6 +412,19 @@ void * FctThreadDKJr(void* arg)
 						{
 							setGrilleJeu(3, positionDKJr, 0);//enleve dk
 							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+
+							if(grilleJeu[3][positionDKJr+1].type == CROCO)
+							{
+								printf("___________________________________________\n");
+								printf("PID CROCO  DK JR: %u\n", grilleJeu[3][positionDKJr+1].tid);
+								//Bortimer
+								pthread_kill(grilleJeu[3][positionDKJr+1].tid, SIGUSR2);
+								printf("APRES KILL\n");
+								on = false;
+
+								// pthread_exit(0);
+								break;
+							}
 
 							positionDKJr++;
 
@@ -471,6 +517,19 @@ void * FctThreadDKJr(void* arg)
 				{
 					setGrilleJeu(2, positionDKJr,0);//enleve dk
 					effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+
+					if(grilleJeu[3][positionDKJr].type == CROCO)
+					{
+						printf("___________________________________________\n");
+						printf("PID CROCO  DK JR: %u\n", grilleJeu[3][positionDKJr].tid);
+						//Bortimer
+						pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
+						printf("APRES KILL\n");
+						on = false;
+
+						// pthread_exit(0);
+						break;
+					}
 					setGrilleJeu(3, positionDKJr, 1);
 					// effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 					afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
@@ -650,6 +709,21 @@ void * FctThreadDKJr(void* arg)
 						
 						setGrilleJeu(0, positionDKJr);//enleve d
 						effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
+
+						if(grilleJeu[1][positionDKJr].type == CROCO)
+						{
+							printf("___________________________________________\n");
+							printf("PID CROCO  DK JR: %u\n", grilleJeu[1][positionDKJr].tid);
+							//Bortimer
+							pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
+							printf("APRES KILL\n");
+							on = false;
+
+							// pthread_exit(0);
+							break;
+						}
+
+
 						setGrilleJeu(1, positionDKJr, 1);
 						// effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
 						afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
@@ -903,6 +977,15 @@ void * FctThreadCroco(void * param)
 		pthread_mutex_lock(&mutexGrilleJeu);
 		printf("LOCK1\n");
 
+///////////
+		if(grilleJeu[1][croco->position].type == DKJR)
+		{
+			grilleJeu[1][croco->position].type = 0;
+			pthread_kill(threadDKJr, SIGHUP);
+			pthread_mutex_unlock(&mutexGrilleJeu);
+			pthread_exit(0);
+		}
+//////////////
 	
 		setGrilleJeu(1, croco->position, CROCO, pthread_self());
 		afficherGrilleJeu();
@@ -948,6 +1031,14 @@ void * FctThreadCroco(void * param)
 		pthread_mutex_lock(&mutexGrilleJeu);
 		printf("LOCK3\n");
 
+		if(grilleJeu[3][croco->position].type == DKJR)
+		{
+			grilleJeu[3][croco->position].type = 0;
+			pthread_kill(threadDKJr, SIGCHLD);
+			pthread_mutex_unlock(&mutexGrilleJeu);
+			pthread_exit(0);
+		}
+
 		printf("YO6\n");
 	
 		setGrilleJeu(3, croco->position, CROCO, pthread_self());
@@ -958,7 +1049,7 @@ void * FctThreadCroco(void * param)
 		else
 			afficherCroco(croco->position * 2 + 8, 4);
 
-printf("YO8\n");
+		printf("YO8\n");
 		pthread_mutex_unlock(&mutexGrilleJeu);
 		printf("UNLOCK\n");
 
@@ -1012,14 +1103,7 @@ void HandlerSIGUSR2(int sig)
 {
 	S_CROCO *croco = (S_CROCO*)pthread_getspecific(keySpec);
 
-	
-
-	// if(croco->haut == false)
-	// 	printf("TTTTTTTAAAAAAAA MMMMMMMMEEEEEEERRRRRRRRREEEEEEE\n");
-
-	// printf("SIGUSR2\n");
-
-	// printf("PID CROCO HANDLER : %u\n", pthread_self());
+	printf("SIGUSR2\n");
 
 	pthread_mutex_lock(&mutexGrilleJeu);
 
@@ -1050,6 +1134,26 @@ void HandlerSIGINT(int sig)
 		pthread_mutex_unlock(&mutexEvenement);
 
 	effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+
+
+	pthread_exit(0);
+
+}
+
+void HandlerSIGHUP(int sig)
+{
+	printf("SIGHUP\n");
+
+	effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+
+	pthread_exit(0);
+}
+
+void HandlerSIGCHLD(int sig)
+{
+	printf("SIGCHLD\n");
+
+	effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
 
 
 	pthread_exit(0);
