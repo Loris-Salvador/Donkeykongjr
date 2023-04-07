@@ -693,10 +693,30 @@ void * FctThreadDKJr(void* arg)
 							on = false;
 						}
 
+						printf("HOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+						
+						for(int i = 1 ; i<4; i++)
+						{
+							if(grilleJeu[3][i].type== CROCO)
+							{
+								printf("IIIIICCCCCIIIII2\n");
+								pthread_kill(grilleJeu[3][i].tid, SIGUSR2);
+							}
+
+						}
+
+						for(int i= 0 ; i<3 ; i++)
+						{
+							if(grilleJeu[2][i].type == CORBEAU)
+							{
+								printf("IIIIICCCCCIIIII2\n");
+								pthread_kill(grilleJeu[2][i].tid, SIGUSR1);
+							}
+								
+						}
+
 
 					}
-
-
 					break;
 					case SDLK_RIGHT:
 
@@ -1041,7 +1061,6 @@ void * FctThreadCroco(void * param)
 		pthread_mutex_lock(&mutexGrilleJeu);
 		printf("LOCK1\n");
 
-///////////
 		if(grilleJeu[1][croco->position].type == DKJR)
 		{
 			grilleJeu[1][croco->position].type = 0;
@@ -1049,7 +1068,6 @@ void * FctThreadCroco(void * param)
 			pthread_mutex_unlock(&mutexGrilleJeu);
 			pthread_exit(0);
 		}
-//////////////
 	
 		setGrilleJeu(1, croco->position, CROCO, pthread_self());
 		afficherGrilleJeu();
