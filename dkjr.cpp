@@ -136,8 +136,7 @@ int main(int argc, char* argv[])
 
 	sigaddset(&mask, SIGUSR2);
     sigprocmask(SIG_BLOCK, &mask, NULL);
-
-
+	
 
 	ouvrirFenetreGraphique();
 
@@ -197,6 +196,7 @@ int main(int argc, char* argv[])
 	{
 		pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 		pthread_join(threadDKJr, NULL);
+		printf("BOUCLE : %d\n", echec);
 		echec++;
 		afficherEchec(echec);
 
@@ -332,13 +332,15 @@ void * FctThreadDKJr(void* arg)
 	printf("Avant Lock DKJR\n");
 
 	pthread_mutex_lock(&mutexGrilleJeu);
+	printf("LOCK9\n");
+
 	setGrilleJeu(3, 1, DKJR); 
 	afficherGrilleJeu();
 	afficherDKJr(11, 9, 1); 
 	etatDKJr = LIBRE_BAS; 
 	positionDKJr = 1;	
 	pthread_mutex_unlock(&mutexGrilleJeu);
-	printf("Apres Lock Evenement\n");
+	printf("Apres UnLock DKJR\n");
 
 	while (on)
 	{
@@ -346,8 +348,11 @@ void * FctThreadDKJr(void* arg)
 		pause();
 		temps = { 1, 400000000 };
 		printf("Sortie de pause()\n");
+		printf("Avant Lock DKJR2\n");
 		pthread_mutex_lock(&mutexEvenement);
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("LOCK DKJR\n");
+
 		printf("EtatDK = %d\n", etatDKJr);
 
 		switch (etatDKJr)
@@ -420,13 +425,38 @@ void * FctThreadDKJr(void* arg)
 						setGrilleJeu(2, positionDKJr, DKJR);
 						afficherGrilleJeu();
 						afficherDKJr(10, (positionDKJr * 2) + 7, 8);
+						printf("LOCK10\n");
 
 						pthread_mutex_unlock(&mutexGrilleJeu);
+						printf("UNLOCK\n");
+
 						nanosleep(&temps, NULL);
 						pthread_mutex_lock(&mutexGrilleJeu);
+						printf("LOCK11\n");
+
 
 						setGrilleJeu(2, positionDKJr);//enleve dk
 						effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+
+
+						/////////////////////////
+						if(grilleJeu[3][positionDKJr].type == CROCO)
+						{
+							printf("___________________________________________\n");
+							printf("PID CROCO  DK JR: %u\n", grilleJeu[3][positionDKJr].tid);
+							//Bortimer
+							pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
+							printf("APRES KILL\n");
+							on = false;
+
+							// pthread_exit(0);
+							break;
+						}
+
+
+						/////////////////////////
+
+
 						setGrilleJeu(3, positionDKJr, 1);
 						// effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 						afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
@@ -653,9 +683,14 @@ void * FctThreadDKJr(void* arg)
 			break;
 
 		}
+		printf("APRES KIbffhghvhgfbhbkhvhL\n");
+
 		pthread_mutex_unlock(&mutexGrilleJeu);
 		pthread_mutex_unlock(&mutexEvenement);
+
+		printf("UNLOCKED\n");
 	}
+	printf("EXIIITTTT\n");
 	pthread_exit(0);
 }
 
@@ -803,6 +838,7 @@ void * FctThreadCorbeau(void * param)
 	while((*position) < 8)
 	{
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("LOCK6\n");
 
 		if(grilleJeu[2][(*position)].type == DKJR)
 		{
@@ -818,13 +854,16 @@ void * FctThreadCorbeau(void * param)
 		afficherCorbeau((*position) * 2 + 8, (*position)%2+1);
 
 		pthread_mutex_unlock(&mutexGrilleJeu);
+		printf("UNLOCK\n");
 
 		nanosleep(&temps, NULL);
 
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("LOCK7\n");
 		setGrilleJeu(2, *position);
 		effacerCarres(9, (*position) * 2 + 8,2,1);
 		pthread_mutex_unlock(&mutexGrilleJeu);
+		printf("UNLOCK\n");
 
 		(*position)++;
 	}
@@ -843,6 +882,9 @@ void * FctThreadCroco(void * param)
     sigaddset(&mask, SIGUSR2);
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
+
+	printf("PID CROCO : %u\n", pthread_self());
+
 	S_CROCO* croco = (S_CROCO*) malloc(sizeof(S_CROCO));
 	if (croco == NULL)
 	{
@@ -850,25 +892,44 @@ void * FctThreadCroco(void * param)
 		exit(1);
 	}
 
+	pthread_setspecific(keySpec, (const void*)croco);
+
 	(*croco).position = 2;
 	(*croco).haut = true;
 
 	while(croco->position < 8)
 	{
+		printf("YO1\n");
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("LOCK1\n");
+
 	
 		setGrilleJeu(1, croco->position, CROCO, pthread_self());
 		afficherGrilleJeu();
 		afficherCroco(croco->position * 2 + 7, (croco->position-1)%2+1);
 
+		printf("YO2\n");
+
 		pthread_mutex_unlock(&mutexGrilleJeu);
+		printf("UNLOCK\n");
+
+
+		printf("Avant sleep1\n");
 
 		nanosleep(&temps, NULL);
 
+		printf("YO3\n");
+
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("LOCK2\n");
+
 		setGrilleJeu(1, croco->position);
 		effacerCarres(8, croco->position * 2 + 7,1,1);
 		pthread_mutex_unlock(&mutexGrilleJeu);
+		printf("UNLOCK\n");
+
+
+		printf("YO4\n");
 
 		(*croco).position++;
 	}
@@ -877,36 +938,49 @@ void * FctThreadCroco(void * param)
 	nanosleep(&temps, NULL);
 	effacerCarres(9, 23, 1,1);
 
+	printf("YO5\n");
+
 	(*croco).haut = false;
 	(*croco).position--;
 
 	while(croco->position > 0)
 	{
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("LOCK3\n");
+
+		printf("YO6\n");
 	
 		setGrilleJeu(3, croco->position, CROCO, pthread_self());
 		afficherGrilleJeu();
+		printf("YO7\n");
 		if(croco->position % 2 == 1)
 			afficherCroco(croco->position * 2 + 8, 5);//croco->position - (croco->position%croco->position));
 		else
 			afficherCroco(croco->position * 2 + 8, 4);
 
-			
+printf("YO8\n");
 		pthread_mutex_unlock(&mutexGrilleJeu);
+		printf("UNLOCK\n");
+
+
+		printf("Avant nanosleep\n");
 
 		nanosleep(&temps, NULL);
 
+		printf("YO9\n");
+
 		pthread_mutex_lock(&mutexGrilleJeu);
+		printf("DANS LOCK\n");
 		setGrilleJeu(3, croco->position);
 		effacerCarres(12, croco->position * 2 + 8,1,1);
 		pthread_mutex_unlock(&mutexGrilleJeu);
+		printf("UNLOCK\n");
+
+
+		printf("YO10\n");
 
 		(*croco).position--;
 	}
-
-
-
-
 
 	pthread_exit(0);
 }
@@ -936,9 +1010,36 @@ void HandlerSIGUSR1(int sig)
 }
 void HandlerSIGUSR2(int sig)
 {
-	int *var = (int*)pthread_getspecific(keySpec);
+	S_CROCO *croco = (S_CROCO*)pthread_getspecific(keySpec);
 
-	printf("SIGUSR2\n");
+	
+
+	// if(croco->haut == false)
+	// 	printf("TTTTTTTAAAAAAAA MMMMMMMMEEEEEEERRRRRRRRREEEEEEE\n");
+
+	// printf("SIGUSR2\n");
+
+	// printf("PID CROCO HANDLER : %u\n", pthread_self());
+
+	pthread_mutex_lock(&mutexGrilleJeu);
+
+	if((*croco).haut == true)
+	{
+		setGrilleJeu(1, croco->position);
+		effacerCarres(8, croco->position * 2 + 7,1,1);
+		printf("TRU3\n");
+	}
+	else
+	{
+		setGrilleJeu(3, croco->position);
+		effacerCarres(12, croco->position * 2 + 8, 1, 1);
+		printf("FALSE\n");
+
+	}
+
+	pthread_mutex_unlock(&mutexGrilleJeu);
+
+	pthread_exit(0);
 
 }
 void HandlerSIGINT(int sig)
