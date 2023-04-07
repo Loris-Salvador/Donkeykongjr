@@ -542,6 +542,19 @@ void * FctThreadDKJr(void* arg)
 				{
 					setGrilleJeu(2, positionDKJr);//enleve dk
 					effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+
+					if(grilleJeu[3][positionDKJr].type == CROCO)
+					{
+						printf("___________________________________________\n");
+						printf("PID CROCO  DK JR: %u\n", grilleJeu[3][positionDKJr].tid);
+						//Bortimer
+						pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
+						printf("APRES KILL\n");
+						on = false;
+
+						// pthread_exit(0);
+						break;
+					}
 					setGrilleJeu(3, positionDKJr, 1);
 					afficherGrilleJeu();
 					// effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
@@ -552,6 +565,18 @@ void * FctThreadDKJr(void* arg)
 				{
 					setGrilleJeu(2, positionDKJr);//enleve dk
 					effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+					if(grilleJeu[1][positionDKJr].type == CROCO)
+					{
+						printf("___________________________________________\n");
+						printf("PID CROCO  DK JR: %u\n", grilleJeu[1][positionDKJr].tid);
+						//Bortimer
+						pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
+						printf("APRES KILL\n");
+						on = false;
+
+						// pthread_exit(0);
+						break;
+					}
 					setGrilleJeu(1, positionDKJr, 1);
 					afficherGrilleJeu();
 					// effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
@@ -568,6 +593,19 @@ void * FctThreadDKJr(void* arg)
 					{
 						setGrilleJeu(1, positionDKJr, 0);
 						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+
+						if(grilleJeu[1][positionDKJr-1].type == CROCO)
+						{
+							printf("___________________________________________\n");
+							printf("PID CROCO  DK JR: %u\n", grilleJeu[1][positionDKJr-1].tid);
+							//Bortimer
+							pthread_kill(grilleJeu[1][positionDKJr-1].tid, SIGUSR2);
+							printf("APRES KILL\n");
+							on = false;
+
+							// pthread_exit(0);
+							break;
+						}
 
 						positionDKJr--;
 
@@ -667,6 +705,19 @@ void * FctThreadDKJr(void* arg)
 						setGrilleJeu(1, positionDKJr, 0);//enleve dk
 						effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 
+						if(grilleJeu[1][positionDKJr+1].type == CROCO)
+						{
+							printf("___________________________________________\n");
+							printf("PID CROCO  DK JR: %u\n", grilleJeu[1][positionDKJr+1].tid);
+							//Bortimer
+							pthread_kill(grilleJeu[1][positionDKJr+1].tid, SIGUSR2);
+							printf("APRES KILL\n");
+							on = false;
+
+							// pthread_exit(0);
+							break;
+						}
+
 						positionDKJr++;
 
 						setGrilleJeu(1, positionDKJr, DKJR);
@@ -749,6 +800,19 @@ void * FctThreadDKJr(void* arg)
 				{
 					setGrilleJeu(0, positionDKJr,0);//enleve dk
 					effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
+
+					if(grilleJeu[1][positionDKJr].type == CROCO)
+					{
+						printf("___________________________________________\n");
+						printf("PID CROCO  DK JR: %u\n", grilleJeu[1][positionDKJr].tid);
+						//Bortimer
+						pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
+						printf("APRES KILL\n");
+						on = false;
+
+						// pthread_exit(0);
+						break;
+					}
 					setGrilleJeu(1, positionDKJr, 1);
 					// effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
 					afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
