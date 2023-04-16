@@ -23,7 +23,8 @@
 
 #define NB_VIES				3
 #define VIE_SUP				50
-#define TEMPS_ENNEMIS		5
+#define ALARM				15
+#define DELAI_MIN           2500
 
 void* FctThreadEvenements(void *);
 void* FctThreadCle(void *);
@@ -490,7 +491,7 @@ void * FctThreadDKJr(void* arg)
 
 				if(evenement == SDLK_DOWN)
 				{
-					setGrilleJeu(2, positionDKJr,VIDE);//enleve dk
+					setGrilleJeu(2, positionDKJr,VIDE);
 					effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 
 					if(grilleJeu[3][positionDKJr].type == CROCO)
@@ -788,8 +789,10 @@ void * FctThreadDKJr(void* arg)
 
 	}
 
+	pthread_mutex_lock(&mutexGrilleJeu);
 	respawn();
-
+	pthread_mutex_unlock(&mutexGrilleJeu);
+	
 	pthread_exit(0);
 }
 
@@ -889,7 +892,7 @@ void * FctThreadEnnemis(void * param)
     sigaddset(&mask, SIGALRM);
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
-	alarm(TEMPS_ENNEMIS);
+	alarm(ALARM);
 
 	while(1)
 	{
@@ -934,11 +937,10 @@ void * FctThreadCorbeau(void * param)
 
 	*position=0;
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+
 	while((*position) < 8)
 	{
-		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("LOCK6\n");
-
 		if(grilleJeu[2][(*position)].type == DKJR)
 		{
 			grilleJeu[2][(*position)].type = 0;
@@ -953,19 +955,17 @@ void * FctThreadCorbeau(void * param)
 		afficherCorbeau((*position) * 2 + 8, (*position)%2+1);
 
 		pthread_mutex_unlock(&mutexGrilleJeu);
-		printf("UNLOCK\n");
 
 		nanosleep(&temps, NULL);
 
 		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("LOCK7\n");
 		setGrilleJeu(2, *position);
 		effacerCarres(9, (*position) * 2 + 8,2,1);
-		pthread_mutex_unlock(&mutexGrilleJeu);
-		printf("UNLOCK\n");
-
 		(*position)++;
 	}
+
+	pthread_mutex_unlock(&mutexGrilleJeu);
+
 
 	pthread_exit(0);
 
@@ -982,8 +982,6 @@ void * FctThreadCroco(void * param)
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 
-	printf("PID CROCO : %u\n", pthread_self());
-
 	S_CROCO* croco = (S_CROCO*) malloc(sizeof(S_CROCO));
 	if (croco == NULL)
 	{
@@ -996,12 +994,11 @@ void * FctThreadCroco(void * param)
 	(*croco).position = 2;
 	(*croco).haut = true;
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+
+
 	while(croco->position < 8)
 	{
-		printf("YO1\n");
-		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("LOCK1\n");
-
 		if(grilleJeu[1][croco->position].type == DKJR)
 		{
 			grilleJeu[1][croco->position].type = 0;
@@ -1014,45 +1011,33 @@ void * FctThreadCroco(void * param)
 		afficherGrilleJeu();
 		afficherCroco(croco->position * 2 + 7, (croco->position-1)%2+1);
 
-		printf("YO2\n");
-
 		pthread_mutex_unlock(&mutexGrilleJeu);
-		printf("UNLOCK\n");
-
-
-		printf("Avant sleep1\n");
-
 		nanosleep(&temps, NULL);
 
-		printf("YO3\n");
-
 		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("LOCK2\n");
 
 		setGrilleJeu(1, croco->position);
 		effacerCarres(8, croco->position * 2 + 7,1,1);
-		pthread_mutex_unlock(&mutexGrilleJeu);
-		printf("UNLOCK\n");
-
-
-		printf("YO4\n");
 
 		(*croco).position++;
 	}
 
+
+
 	afficherCroco(0, 3);
+	pthread_mutex_unlock(&mutexGrilleJeu);
+
 	nanosleep(&temps, NULL);
 	effacerCarres(9, 23, 1,1);
-
-	printf("YO5\n");
 
 	(*croco).haut = false;
 	(*croco).position--;
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+
+
 	while(croco->position > 0)
 	{
-		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("LOCK3\n");
 
 		if(grilleJeu[3][croco->position].type == DKJR)
 		{
@@ -1061,53 +1046,40 @@ void * FctThreadCroco(void * param)
 			pthread_mutex_unlock(&mutexGrilleJeu);
 			pthread_exit(0);
 		}
-
-		printf("YO6\n");
 	
 		setGrilleJeu(3, croco->position, CROCO, pthread_self());
 		afficherGrilleJeu();
-		printf("YO7\n");
+
 		if(croco->position % 2 == 1)
-			afficherCroco(croco->position * 2 + 8, 5);//croco->position - (croco->position%croco->position));
+			afficherCroco(croco->position * 2 + 8, 5);
 		else
 			afficherCroco(croco->position * 2 + 8, 4);
 
-		printf("YO8\n");
 		pthread_mutex_unlock(&mutexGrilleJeu);
-		printf("UNLOCK\n");
-
-
-		printf("Avant nanosleep\n");
 
 		nanosleep(&temps, NULL);
 
-		printf("YO9\n");
-
 		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("DANS LOCK\n");
 		setGrilleJeu(3, croco->position);
 		effacerCarres(12, croco->position * 2 + 8,1,1);
-		pthread_mutex_unlock(&mutexGrilleJeu);
-		printf("UNLOCK\n");
-
-
-		printf("YO10\n");
 
 		(*croco).position--;
 	}
 
+	pthread_mutex_unlock(&mutexGrilleJeu);
+
 	pthread_exit(0);
 }
 
-void respawn()
+void respawn()//attention faut avoir lock mutex grille jeu
 {
 	int i;
+	struct timespec temps = {0, 100000000};
 
 	for(i = 1 ; i<4; i++)
 	{
 		if(grilleJeu[3][i].type== CROCO)
 		{
-			printf("IIIIICCCCCIIIII2\n");
 			pthread_kill(grilleJeu[3][i].tid, SIGUSR2);
 		}
 
@@ -1117,25 +1089,27 @@ void respawn()
 	{
 		if(grilleJeu[2][i].type == CORBEAU)
 		{
-			printf("IIIIICCCCCIIIII2\n");
 			pthread_kill(grilleJeu[2][i].tid, SIGUSR1);
-		}
-			
+		}		
 	}
+	
+	nanosleep(&temps, NULL);
 }
 
 void HandlerSIGQUIT(int sig)
 {
-	printf("\nEvenement !\n");
+	//printf("\nEvenement !\n");
 }
+
 void HandlerSIGALRM(int sig)
 {
 	printf("SIGALRM\n");
 	delaiEnnemis = delaiEnnemis - 250;
 
-	if(delaiEnnemis > 2500)
-		alarm(TEMPS_ENNEMIS);
+	if(delaiEnnemis > DELAI_MIN)
+		alarm(ALARM);
 }
+
 void HandlerSIGUSR1(int sig)
 {
 	int *var = (int*)pthread_getspecific(keySpec);
@@ -1157,6 +1131,7 @@ void HandlerSIGUSR2(int sig)
 {
 	S_CROCO *croco = (S_CROCO*)pthread_getspecific(keySpec);
 
+	printf("SIGUSR2\n");
 
 	pthread_mutex_lock(&mutexGrilleJeu);
 
@@ -1185,6 +1160,9 @@ void HandlerSIGINT(int sig)
 
 	effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+	respawn();
+	pthread_mutex_unlock(&mutexGrilleJeu);
 
 	pthread_exit(0);
 
@@ -1196,6 +1174,10 @@ void HandlerSIGHUP(int sig)
 
 	effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+	respawn();
+	pthread_mutex_unlock(&mutexGrilleJeu);
+
 	pthread_exit(0);
 }
 
@@ -1205,6 +1187,9 @@ void HandlerSIGCHLD(int sig)
 
 	effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+	respawn();
+	pthread_mutex_unlock(&mutexGrilleJeu);
 
 	pthread_exit(0);
 
