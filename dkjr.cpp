@@ -21,6 +21,8 @@
 #define LIBRE_HAUT		4
 #define LIANE_HAUT		5
 
+#define NbVies 3
+
 void* FctThreadEvenements(void *);
 void* FctThreadCle(void *);
 void* FctThreadDK(void *);
@@ -208,7 +210,7 @@ int main(int argc, char* argv[])
 	//Thread DkJr
 	printf("Initialisation Thread DkJr\n");
 
-	while(echec < 3)
+	while(echec < NbVies)
 	{
 		pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 		pthread_join(threadDKJr, NULL);
@@ -887,6 +889,8 @@ void * FctThreadDKJr(void* arg)
 		}
 			
 	}
+	temps = {0 , 100000000};
+	nanosleep(&temps, NULL);
 	pthread_exit(0);
 }
 
