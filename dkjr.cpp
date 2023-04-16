@@ -618,11 +618,18 @@ void * FctThreadDKJr(void* arg)
 								pthread_mutex_unlock(&mutexScore);
 								pthread_cond_signal(&condScore);
 
-
+								pthread_mutex_unlock(&mutexGrilleJeu);
 								nanosleep(&temps, NULL);
+								pthread_mutex_lock(&mutexGrilleJeu);
+
 								effacerCarres(6, 10, 2, 3);
 
 								respawn();
+
+								temps = {0, 100000000};
+								pthread_mutex_unlock(&mutexGrilleJeu);
+								nanosleep(&temps, NULL);
+								pthread_mutex_lock(&mutexGrilleJeu);
 
 								setGrilleJeu(3, 1, DKJR); 
 								afficherGrilleJeu();
@@ -1074,7 +1081,7 @@ void * FctThreadCroco(void * param)
 void respawn()//attention faut avoir lock mutex grille jeu
 {
 	int i;
-	struct timespec temps = {0, 200000000};
+	struct timespec temps = {0, 100000000};
 
 	for(i = 1 ; i<4; i++)
 	{
