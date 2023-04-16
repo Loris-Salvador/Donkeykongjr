@@ -1074,7 +1074,7 @@ void * FctThreadCroco(void * param)
 void respawn()//attention faut avoir lock mutex grille jeu
 {
 	int i;
-	struct timespec temps = {0, 100000000};
+	struct timespec temps = {0, 200000000};
 
 	for(i = 1 ; i<4; i++)
 	{
@@ -1093,7 +1093,7 @@ void respawn()//attention faut avoir lock mutex grille jeu
 		}		
 	}
 	
-	nanosleep(&temps, NULL);
+	//nanosleep(&temps, NULL);
 }
 
 void HandlerSIGQUIT(int sig)
