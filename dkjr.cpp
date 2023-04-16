@@ -8,20 +8,20 @@
 #include "./presentation/presentation.h"
 
 #define VIDE        		0
-#define DKJR       		1
+#define DKJR       			1
 #define CROCO       		2
 #define CORBEAU     		3
-#define CLE 			4
+#define CLE 				4
 
 #define AUCUN_EVENEMENT    	0
 
-#define LIBRE_BAS		1
-#define LIANE_BAS		2
+#define LIBRE_BAS			1
+#define LIANE_BAS			2
 #define DOUBLE_LIANE_BAS	3
-#define LIBRE_HAUT		4
-#define LIANE_HAUT		5
+#define LIBRE_HAUT			4
+#define LIANE_HAUT			5
 
-#define NbVies 3
+#define NbVies 				3
 
 void* FctThreadEvenements(void *);
 void* FctThreadCle(void *);
@@ -52,8 +52,6 @@ pthread_t threadDKJr;
 pthread_t threadEvenements;
 pthread_t threadScore;
 pthread_t threadEnnemis;
-// pthread_t threadCorbeau;
-// pthread_t threadCroco;
 
 pthread_cond_t condDK;
 pthread_cond_t condScore;
@@ -66,12 +64,14 @@ pthread_mutex_t mutexScore;
 pthread_key_t keySpec;
 
 bool MAJDK = false;
-int  score = 0;
+int  score;
 bool MAJScore = false;
 int  delaiEnnemis = 4000;
 int  positionDKJr = 1;
 int  evenement = AUCUN_EVENEMENT;
 int etatDKJr;
+int nbEchecs;
+
 
 typedef struct
 {
@@ -87,15 +87,15 @@ typedef struct
   int position;
 } S_CROCO;
 
-// ------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
 	sigset_t mask;
     sigemptyset(&mask);
-	int echec=0;
 
 	struct sigaction sigAct;
+
+//----------------------------------------
 
     sigAct.sa_handler = HandlerSIGQUIT;
     sigemptyset(&sigAct.sa_mask);
@@ -105,6 +105,7 @@ int main(int argc, char* argv[])
 	sigaddset(&mask, SIGQUIT);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
+//----------------------------------------
 
 	sigAct.sa_handler = HandlerSIGALRM;
     sigemptyset(&sigAct.sa_mask);
@@ -114,6 +115,8 @@ int main(int argc, char* argv[])
 	sigaddset(&mask, SIGALRM);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
+//----------------------------------------
+
 	sigAct.sa_handler = HandlerSIGUSR1;
     sigemptyset(&sigAct.sa_mask);
 	sigAct.sa_flags=0;
@@ -121,6 +124,8 @@ int main(int argc, char* argv[])
 
 	sigaddset(&mask, SIGUSR1);
     sigprocmask(SIG_BLOCK, &mask, NULL);
+
+//----------------------------------------
 
 	sigAct.sa_handler = HandlerSIGINT;
     sigemptyset(&sigAct.sa_mask);
@@ -130,6 +135,7 @@ int main(int argc, char* argv[])
 	sigaddset(&mask, SIGINT);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
+//----------------------------------------
 
 	sigAct.sa_handler = HandlerSIGUSR2;
     sigemptyset(&sigAct.sa_mask);
@@ -139,6 +145,8 @@ int main(int argc, char* argv[])
 	sigaddset(&mask, SIGUSR2);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
+//----------------------------------------
+
 	sigAct.sa_handler = HandlerSIGHUP;
     sigemptyset(&sigAct.sa_mask);
 	sigAct.sa_flags=0;
@@ -147,6 +155,8 @@ int main(int argc, char* argv[])
 	sigaddset(&mask, SIGHUP);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
+//----------------------------------------
+
 	sigAct.sa_handler = HandlerSIGCHLD;
     sigemptyset(&sigAct.sa_mask);
 	sigAct.sa_flags=0;
@@ -154,77 +164,73 @@ int main(int argc, char* argv[])
 
 	sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
-	
 
+//----------------------------------------
+
+	
 	ouvrirFenetreGraphique();
 
-	//intialisation mutex
+
+	//intialisation mutexs
 
 	pthread_mutex_init(&mutexEvenement, NULL);  
 	pthread_mutex_init(&mutexGrilleJeu, NULL);  
 	pthread_mutex_init(&mutexDK, NULL);
 	pthread_mutex_init(&mutexScore, NULL);  	
 		
-	//Initialisation cond
+	//Initialisation condition
 
 	pthread_cond_init(&condDK, NULL);
 	pthread_cond_init(&condScore, NULL);
 
 
-	//Key
+	//Initialisation Cle_Specifique
 
 	pthread_key_create(&keySpec, DestructeurVS);
 
 	//Thread cle
-
 	printf("Initialisation Thread Cle\n");
 	pthread_create(&threadCle, NULL, FctThreadCle, NULL);
 
 	//Thread DkJr
 	printf("Initialisation Thread DkJr\n");
-
 	pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 
 	//Thread Evenement
 	printf("Initialisation Thread Evenement\n");
-
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
-
 
 	//ThreadDK
 	printf("Initialisation thread DK\n");
-
 	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
 
 	//ThreadScore
 	printf("Initialisation thread Score\n");
-
 	pthread_create(&threadScore, NULL, FctThreadScore, NULL);
-
 
 	//ThreadEnnemis
 	printf("Initialisation thread Ennemis\n");
-
 	pthread_create(&threadEnnemis, NULL, FctThreadEnnemis, NULL);
 
-	//Thread DkJr
-	printf("Initialisation Thread DkJr\n");
+//-------------------------------------
 
-	while(echec < NbVies)
+	pthread_join(threadDKJr, NULL);
+	nbEchecs++;
+	afficherEchec(nbEchecs);
+
+
+	while(nbEchecs < NbVies)
 	{
 		pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 		pthread_join(threadDKJr, NULL);
-		printf("BOUCLE : %d\n", echec);
-		echec++;
-		afficherEchec(echec);
-
+		nbEchecs++;
+		afficherEchec(nbEchecs);
 	}
+
 
 	pthread_exit(0);
 
 }
-
-// -------------------------------------
 
 void initGrilleJeu()
 {
@@ -239,15 +245,11 @@ void initGrilleJeu()
   pthread_mutex_unlock(&mutexGrilleJeu);
 }
 
-// -------------------------------------
-
 void setGrilleJeu(int l, int c, int type, pthread_t tid)
 {
   grilleJeu[l][c].type = type;
   grilleJeu[l][c].tid = tid;
 }
-
-// -------------------------------------
 
 void afficherGrilleJeu()
 {   
@@ -260,6 +262,7 @@ void afficherGrilleJeu()
 
    printf("\n");   
 }
+
 void *FctThreadCle(void* arg)
 {
 	struct timespec temps = { 0, 700000000 };
@@ -268,36 +271,32 @@ void *FctThreadCle(void* arg)
 
 	while(1)
 	{	
-		//printf("Avant Lock cle\n");
 		pthread_mutex_lock(&mutexGrilleJeu);
-		//printf("Lock cle\n");
 
 		if(pos==1)
 			grilleJeu[0][1].type=CLE;
 		else
 			grilleJeu[0][1].type=VIDE;
-
 		afficherCle(pos);
 
 		pthread_mutex_unlock(&mutexGrilleJeu);
-
-		//printf("APRES Lock cle\n");
 			
+
 		nanosleep(&temps, NULL);
+
 
 		pthread_mutex_lock(&mutexGrilleJeu);
 
 		if(pos<3)//2 carres à supprimer
 			effacerCarres(3, 12 + (pos-1), 2);	
-
 		else//4 carres à supprimer
 			effacerCarres(3, 13, 2, 2);
 			
 		pthread_mutex_unlock(&mutexGrilleJeu);
 
+
 		if(pos==1 || pos ==4)
 			sens = sens * -1;
-
 		pos = pos + sens;
 	}
 }
@@ -309,73 +308,59 @@ void *FctThreadEvenements(void* arg)
 
 	while (1)
 	{
-		printf("Lecture evenement\n");
 		evt = lireEvenement();
 
 		if(evt == SDL_QUIT)
 			exit(0);
 
-		printf("Avant Lock Evenement\n");
 		pthread_mutex_lock(&mutexEvenement);
 		evenement = evt;
 		pthread_mutex_unlock(&mutexEvenement);
-		printf("Apres Lock Evenement\n");
 
-		printf("Envoie signal a dkjr\n");
 		pthread_kill(threadDKJr, SIGQUIT);
-		printf("wesh\n");
 		nanosleep(&temps, NULL);
-		printf("Avant Lock Evenement 2\n");
+
 		pthread_mutex_lock(&mutexEvenement);
 		evenement = AUCUN_EVENEMENT;
 		pthread_mutex_unlock(&mutexEvenement);
-		printf("APRES Lock Evenement 2\n");
 	}
 }
 
 void * FctThreadDKJr(void* arg)
 {
+	struct timespec temps;
 	sigset_t mask;
+
     sigemptyset(&mask);
+
     sigaddset(&mask, SIGQUIT);
-
 	sigaddset(&mask, SIGINT);
-
 	sigaddset(&mask, SIGHUP);
-
 	sigaddset(&mask, SIGCHLD);
 
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
-	struct timespec temps;
 
 	bool on = true;
 
-	printf("Avant Lock DKJR\n");
-
 	pthread_mutex_lock(&mutexGrilleJeu);
-	printf("LOCK9\n");
 
 	setGrilleJeu(3, 1, DKJR); 
 	afficherGrilleJeu();
 	afficherDKJr(11, 9, 1); 
 	etatDKJr = LIBRE_BAS; 
 	positionDKJr = 1;	
+	
 	pthread_mutex_unlock(&mutexGrilleJeu);
-	printf("Apres UnLock DKJR\n");
 
 	while (on)
 	{
 		printf("Attente...\n");
 		pause();
 		temps = { 1, 400000000 };
-		printf("Sortie de pause()\n");
-		printf("Avant Lock DKJR2\n");
+
 		pthread_mutex_lock(&mutexEvenement);
 		pthread_mutex_lock(&mutexGrilleJeu);
-		printf("LOCK DKJR\n");
-
-		printf("EtatDK = %d\n", etatDKJr);
 
 		switch (etatDKJr)
 		{
@@ -383,21 +368,15 @@ void * FctThreadDKJr(void* arg)
 				switch (evenement)
 				{
 					case SDLK_LEFT:
-						if (positionDKJr > 1)
+						if(positionDKJr > 1)
 						{
 							setGrilleJeu(3, positionDKJr, 0);
 							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
 
 							if(grilleJeu[3][positionDKJr-1].type == CROCO)
 							{
-								printf("___________________________________________\n");
-								printf("PID CROCO  DK JR: %u\n", grilleJeu[3][positionDKJr-1].tid);
-								//Bortimer
 								pthread_kill(grilleJeu[3][positionDKJr-1].tid, SIGUSR2);
-								printf("APRES KILL\n");
 								on = false;
-
-								// pthread_exit(0);
 								break;
 							}
 
@@ -1202,7 +1181,7 @@ void * FctThreadCroco(void * param)
 
 void HandlerSIGQUIT(int sig)
 {
-	//printf("\nEvenement\n");
+	printf("\nEvenement !\n");
 }
 void HandlerSIGALRM(int sig)
 {
