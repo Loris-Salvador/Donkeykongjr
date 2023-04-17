@@ -273,9 +273,11 @@ void *FctThreadCle(void* arg)
 
 	int pos = 1, sens = -1;
 
+	pthread_mutex_lock(&mutexGrilleJeu);
+
+
 	while(1)
 	{	
-		pthread_mutex_lock(&mutexGrilleJeu);
 
 		if(pos==1)
 			grilleJeu[0][1].type=CLE;
@@ -295,8 +297,6 @@ void *FctThreadCle(void* arg)
 			effacerCarres(3, 12 + (pos-1), 2);	
 		else//4 carres à supprimer
 			effacerCarres(3, 13, 2, 2);
-			
-		pthread_mutex_unlock(&mutexGrilleJeu);
 
 
 		if(pos==1 || pos ==4)
@@ -474,6 +474,14 @@ void * FctThreadDKJr(void* arg)
 							pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
 							on = false;
 							break;
+						}
+						if(grilleJeu[3][positionDKJr-1].type == CROCO)
+						{
+							pthread_mutex_lock(&mutexScore);
+							score=score+1;
+							MAJScore=true;
+							pthread_mutex_unlock(&mutexScore);
+							pthread_cond_signal(&condScore);
 						}
 
 
@@ -730,11 +738,21 @@ void * FctThreadDKJr(void* arg)
 						setGrilleJeu(0, positionDKJr, VIDE);
 						effacerCarres(6, (positionDKJr * 2) + 7, 2, 2);
 
+
+						//Descente apres saut
 						if(grilleJeu[1][positionDKJr].type == CROCO)
 						{
 							pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
 							on = false;
 							break;
+						}
+						if(grilleJeu[1][positionDKJr+1].type == CROCO)
+						{
+							pthread_mutex_lock(&mutexScore);
+							score=score+1;
+							MAJScore=true;
+							pthread_mutex_unlock(&mutexScore);
+							pthread_cond_signal(&condScore);
 						}
 
 
