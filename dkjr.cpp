@@ -22,7 +22,7 @@
 #define LIANE_HAUT			5
 
 #define NB_VIES				3
-
+#define VIE_SUP             300
 #define ALARM				15
 #define DELAI_MIN           2500
 
@@ -880,7 +880,8 @@ void* FctThreadDK(void * param)
 
 void * FctThreadScore(void * param)
 {
-	int tmp, vieSup = 50;
+	int tmp, vieSup = VIE_SUP;
+	printf("%d\n", vieSup);
 
 	afficherScore(score);
 
