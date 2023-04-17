@@ -22,7 +22,7 @@
 #define LIANE_HAUT			5
 
 #define NB_VIES				3
-#define VIE_SUP				50
+
 #define ALARM				15
 #define DELAI_MIN           2500
 
@@ -64,6 +64,7 @@ pthread_mutex_t mutexGrilleJeu;
 pthread_mutex_t mutexDK;
 pthread_mutex_t mutexEvenement;
 pthread_mutex_t mutexScore;
+pthread_mutex_t mutexDelaiEnnemis;
 
 pthread_key_t keySpec;
 
@@ -180,7 +181,8 @@ int main(int argc, char* argv[])
 	pthread_mutex_init(&mutexEvenement, NULL);  
 	pthread_mutex_init(&mutexGrilleJeu, NULL);  
 	pthread_mutex_init(&mutexDK, NULL);
-	pthread_mutex_init(&mutexScore, NULL);  	
+	pthread_mutex_init(&mutexScore, NULL);  
+	pthread_mutex_init(&mutexDelaiEnnemis, NULL);	
 		
 	//Initialisation condition
 
@@ -878,7 +880,7 @@ void* FctThreadDK(void * param)
 
 void * FctThreadScore(void * param)
 {
-	int tmp;
+	int tmp, vieSup = 50;
 
 	afficherScore(score);
 
@@ -893,10 +895,14 @@ void * FctThreadScore(void * param)
 		if(score>tmp)
 		{
 			afficherScore(score);
-			if((score % VIE_SUP == 0) &&  (nbEchecs > 0))
+			if((score >= vieSup) &&  (nbEchecs > 0))
 			{
 				nbEchecs--;
 				effacerCarres(7, nbEchecs+27, 1, 1);
+				pthread_mutex_lock(&mutexDelaiEnnemis);
+				delaiEnnemis = 3000;
+             	pthread_mutex_unlock(&mutexDelaiEnnemis);
+				vieSup = vieSup + vieSup;
 			}
 		}
 
@@ -1118,7 +1124,6 @@ void respawn()//attention faut avoir lock mutex grille jeu
 		}		
 	}
 	
-	//nanosleep(&temps, NULL);
 }
 
 void HandlerSIGQUIT(int sig)
@@ -1129,7 +1134,10 @@ void HandlerSIGQUIT(int sig)
 void HandlerSIGALRM(int sig)
 {
 	printf("SIGALRM\n");
+
+	pthread_mutex_lock(&mutexDelaiEnnemis);
 	delaiEnnemis = delaiEnnemis - 250;
+	pthread_mutex_unlock(&mutexDelaiEnnemis);
 
 	if(delaiEnnemis > DELAI_MIN)
 		alarm(ALARM);
